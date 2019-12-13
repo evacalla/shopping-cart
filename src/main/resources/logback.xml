@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="10 seconds">
+
+    <property name="FILE_LOG_PATTERN"
+              value="%date %highlight(%-5level) %cyan([%-45.45logger %-10.10thread]) %msg%n%rEx"/>
+
+    <property name="LOG_FILE" value="log/marketplace.log"/>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_FILE}.%d{yyyy-MM-dd}.log</fileNamePattern>
+        </rollingPolicy>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>${FILE_LOG_PATTERN}</Pattern>
+        </layout>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
+    </appender>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>${FILE_LOG_PATTERN}</Pattern>
+        </layout>
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+
+
+    <logger name="com.marketplace" level="INFO"/>
+    <logger name="com.marketplace.v1.repository" level="INFO"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"  />
+        <appender-ref ref="FILE" />
+    </root>
+
+</configuration>
