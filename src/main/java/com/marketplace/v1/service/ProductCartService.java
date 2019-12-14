@@ -30,7 +30,7 @@ public class ProductCartService {
     @Autowired
     public ProductCartService(ProductCartJpaRepository productCartJpaRepository,
                               ProductService productService) {
-        this.productService = this.productService;
+        this.productService = productService;
         this.productCartJpaRepository = productCartJpaRepository;
     }
 
