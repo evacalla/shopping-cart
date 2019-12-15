@@ -46,7 +46,7 @@ _Herramientas utilizadas_
 
 
 
-## Autores ✒️
+## Autor ✒️
 
 * **Enzo Vacalla Gismondi** - [evacalla](https://github.com/evacalla)
 
