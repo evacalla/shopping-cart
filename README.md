@@ -1,7 +1,6 @@
 # Shopping Cart
 
-Un market place que permita genera carritos, agregar, quitar, productos, cambiar el estado de carrito y un proceso que permita de manera
-simultanea descontar el stock con respecto a los productos asociados al carrito.
+Un market place que permita genera carritos, agregar, quitar, productos, cambiar el estado de carrito y un proceso que permitirá de manera simultanea descontar el stock con respecto a los productos asociados al carrito, dicho proceso corre cada 5minutos a través de un actor.
 
 
 ### Pre-requisitos 📋
