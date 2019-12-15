@@ -7,19 +7,29 @@ import com.marketplace.exception.MarketPlaceNotFoundException;
 import com.marketplace.v1.repository.CartJpaRepository;
 import com.marketplace.v1.vo.CartVO;
 import com.marketplace.v1.vo.ProductVO;
+import org.hibernate.LockMode;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.annotations.OptimisticLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.RollbackException;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+
+import static sun.plugin2.message.StartAppletAckMessage.STATUS_READY;
 
 /**
  * Created by evacalla on 5/12/2019
@@ -102,49 +112,33 @@ public class CartService {
         return vo;
     }
 
-    @Transactional
     public void process(){
-        List<Cart> carts = this.cartJpaRepository.findByStatus(READY);
-
-        carts.forEach(cart -> {
-            Runnable runnable = () -> {
-                LOGGER.info("Cart process init id: " + cart.getId());
-                List<ProductCart> productCarts = this.productCartService.getProductCartsByCartId(cart.getId());
-                productCarts.forEach(productCart -> {
-                    Integer rest = productCart.getId().getProduct().getStock() - productCart.getQuantity();
-                    if(rest > 0){
-                        LOGGER.info("Cart id: " + cart.getId() + " with productId : " + productCart.getId().getProduct().getId() + " PROCESS");
-                        Product product = productCart.getId().getProduct();
-                        product.setStock(rest);
-                        this.productService.save(product);
-                    } else if(!"FAIL".equals(cart.getStatus())) {
-                        LOGGER.info("Cart id: " + cart.getId() + " with productId : " + productCart.getId().getProduct().getId() + " FAILD");
-                        List<ProductCart> aux = productCarts.stream()
-                                .filter(p -> !p.getId().equals(productCart.getId()))
-                                .collect(Collectors.toList());
-                        this.rollBack(aux);
-                        cart.setStatus("FAILD");
-                        this.cartJpaRepository.save(cart);
-                        LOGGER.info("Cart id: " + cart.getId() + " with status FAILD");
-                    }
-                });
-                if(!"FAILD".equals(cart.getStatus())){
-                    cart.setStatus("PROCESSED");
-                    this.cartJpaRepository.save(cart);
-                    LOGGER.info("Cart id: " + cart.getId() + " with status PROCESSED");
-                }
-                LOGGER.info("Cart process finish id:" + cart.getId());
-            };
-            executorService.execute(runnable);
-        });
+        LOGGER.info("CartService.process()");
+        List<Cart> carts = this.loadCartStatusReady();
+        carts.forEach(cart -> this.runnable(cart));
     }
 
-    private void rollBack(List<ProductCart> list){
-        list.forEach(p -> {
-            Integer previeus = p.getQuantity() + p.getId().getProduct().getStock();
-            p.getId().getProduct().setStock(previeus);
-            this.productService.save(p.getId().getProduct());
-        });
+    @Transactional
+    private void runnable(Cart cart) {
+        LOGGER.info("CartService.runnable()");
+        Runnable runnable = () -> {
+            LOGGER.info("Cart prodcess id: " + cart.getId());
+            if(this.thereAreStock(cart)) {
+                List<ProductCart> productCarts = this.productCartService.getProductCartsByCartId(cart.getId());
+                productCarts.forEach(productCart -> {
+                    LOGGER.info("PROCESS cart id " + cart.getId() + "with productId " + productCart.getId().getProduct().getId() );
+                    Integer rest = productCart.getId().getProduct().getStock() - productCart.getQuantity();
+                    Product product = productCart.getId().getProduct();
+                    product.setStock(rest);
+                    this.productService.save(product);
+                    LOGGER.info("PROCESS cart id: " + cart.getId());
+                });
+            } else {
+                cart.setStatus("Faild cart id:" + cart.getId() );
+                this.cartJpaRepository.save(cart);
+            }
+        };
+        executorService.execute(runnable);
     }
 
     private Cart findCart(Long id) {
@@ -159,5 +153,15 @@ public class CartService {
         cart.setEmail(vo.getEmail());
         cart.setStatus("NEW");
         return cart;
+    }
+
+    private List<Cart> loadCartStatusReady(){
+        return this.cartJpaRepository.findByStatus("READY");
+    }
+
+    private boolean thereAreStock(Cart cart) {
+        List<ProductCart> productCarts = this.productCartService.getProductCartsByCartId(cart.getId());
+        return productCarts.stream()
+                .allMatch(product -> product.getId().getProduct().getStock() > product.getQuantity());
     }
 }

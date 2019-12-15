@@ -1,25 +1,32 @@
 package com.marketplace;
 
 
-import com.marketplace.domain.Product;
-import com.marketplace.v1.repository.ProductJpaRepository;
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import com.marketplace.chron.CartChrom;
+import com.marketplace.configuration.SpringExtension;
 import com.marketplace.v1.service.ProductService;
-import org.hibernate.Transaction;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 
-import javax.transaction.Transactional;
-import java.math.BigDecimal;
 import java.util.Date;
 
 
 @SpringBootApplication
 public class Application {
 
+	public static ActorRef cartChrom;
+
 	public static void main(String[] args) {
-		SpringApplication.run(Application.class, args);
+		final ConfigurableApplicationContext applicationContext = SpringApplication.run(Application.class, args);
+		ActorSystem actorSystem = applicationContext.getBean(ActorSystem.class);
+
+		cartChrom = actorSystem.actorOf(SpringExtension.SpringExtProvider.get(actorSystem).props("CartChrom"));
+		cartChrom.tell(new CartChrom.Schedule(new Date()),null);
+
 	}
 
 	@Bean

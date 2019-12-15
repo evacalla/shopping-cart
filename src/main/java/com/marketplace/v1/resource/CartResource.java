@@ -60,10 +60,4 @@ public class CartResource {
         return ResponseEntity.ok(HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/process", method = {RequestMethod.GET})
-    public ResponseEntity changeStatusCart(){
-        this.service.process();
-        return ResponseEntity.ok(HttpStatus.OK);
-    }
-
 }
